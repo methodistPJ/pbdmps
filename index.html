@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PBD Intelligence - SK Methodist PJ</title>
+    <title>DASHBOARD PBD - SK Methodist PJ</title>
     
     <!-- Google Fonts & Tailwind CSS -->
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
@@ -43,6 +43,11 @@
       .ci-kpi { background:#fff; border:1px solid var(--ci-line); border-radius:10px; padding:18px; text-align:left; }
       .ci-kpi .value { font:800 1.7rem Manrope,sans-serif; color:var(--ci-ink); }
       .ci-kpi .label { color:#667085; font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700; }
+      .ci-public-kpi { min-height:5.7rem; padding:14px 16px; border-radius:12px; box-shadow:none; cursor:default; pointer-events:none; }
+      .ci-public-kpi .value { font-family:Manrope,sans-serif; font-size:clamp(1.875rem,2.2vw,2.125rem); font-weight:700; line-height:1; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
+      .ci-public-kpi .label { margin-top:.55rem; color:#667085; font-size:clamp(.75rem,1vw,.8125rem); line-height:1.25; font-weight:500; text-transform:none; letter-spacing:.005em; }
+      .ci-kpi-attention { display:inline-flex; align-items:center; gap:.35rem; margin-left:.35rem; color:#9a6700; font-size:.68rem; font-weight:700; white-space:nowrap; }
+      .ci-kpi-attention:before { content:""; width:.42rem; height:.42rem; border-radius:999px; background:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,.13); }
       .ci-module { position:relative; overflow:hidden; background:#fff; color:var(--ci-ink); border:1px solid var(--ci-line); border-radius:12px; padding:20px; min-height:148px; text-align:left; transition:.2s ease; }
       .ci-module:hover { transform:translateY(-2px); border-color:var(--ci-blue); box-shadow:0 12px 28px rgba(60,79,216,.10); }
       .ci-module .index { color:var(--ci-blue); font:800 .72rem Manrope,sans-serif; letter-spacing:.12em; }
@@ -135,6 +140,8 @@
       .dark body { background:#020617!important; }
       .dark .ci-surface,.dark .ci-kpi,.dark .ci-module { background:#0f172a; border-color:#334155; color:#f8fafc; }
       .dark .ci-kpi .value { color:#f8fafc; }
+      .dark .ci-public-kpi .label { color:#94a3b8; }
+      .dark .ci-kpi-attention { color:#fbbf24; }
       .dark .ci-event-row { background:#111827; border-color:#334155; }
       .dark #dynamicContent input,.dark #dynamicContent select,.dark #dynamicContent textarea { background:#1e293b; color:#f8fafc; border-color:#475569; }
       .dark .ci-save-panel { background:#111827; color:#f8fafc; border-color:#334155; }
@@ -199,17 +206,17 @@
 <body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between transition-colors duration-300 font-sans">
 
     <!-- APP LAUNCH SCREEN (PRE-LOADING SCREEN) -->
-    <div id="appLaunchScreen" class="fixed inset-0 bg-slate-900 z-50 flex flex-col items-center justify-center p-6 transition-opacity duration-500">
+    <div id="appLaunchScreen" class="fixed inset-0 bg-white text-slate-900 z-50 flex flex-col items-center justify-center p-6 transition-opacity duration-500">
         <div class="relative mb-6">
             <img src="https://www.image2url.com/r2/default/images/1777004127159-eeeb0c89-141c-439e-9650-a0fef2baa72b.png" alt="Logo SK Methodist PJ" class="w-28 h-28 object-contain animate-pulse">
         </div>
-        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-wider mb-2 text-center">DASHBOARD DIALOG PRESTASI</h1>
-        <p id="launchQuote" class="text-xs sm:text-sm text-blue-300 h-6 mb-6 text-center font-medium">Memuat ringkasan agregat dari Google Sheets...</p>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-wider mb-2 text-center">DASHBOARD PBD</h1>
+        <p id="launchQuote" class="text-xs sm:text-sm text-blue-700 h-6 mb-6 text-center font-medium">Memuat ringkasan agregat dari Google Sheets...</p>
         
-        <div class="w-full max-w-md bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700 shadow-inner">
+        <div class="w-full max-w-md bg-slate-200 rounded-full h-3 overflow-hidden border border-slate-300 shadow-inner">
             <div id="launchProgressBar" class="bg-gradient-to-r from-blue-500 via-teal-400 to-emerald-400 h-full w-0 transition-all duration-300"></div>
         </div>
-        <span id="launchProgressText" class="text-xs text-slate-400 font-bold mt-2">0%</span>
+        <span id="launchProgressText" class="text-xs text-slate-600 font-bold mt-2">0%</span>
     </div>
 
     <!-- HEADER / NAVBAR -->
@@ -217,7 +224,7 @@
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-lg bg-white text-methodistBlue grid place-items-center font-extrabold">PBD</div>
-                <div><h1 class="text-lg font-bold tracking-wide">SK METHODIST (M) PJ</h1><span class="text-xs text-slate-300">PBD Intelligence</span></div>
+                <div><h1 class="text-lg font-bold tracking-wide">SK Methodist PJ</h1><span class="text-xs text-slate-300">DASHBOARD PBD</span></div>
             </div>
             
             <!-- TOGGLE DARK MODE BUTTON -->
@@ -252,7 +259,8 @@
                     <button onclick="bukaLogin()" class="ci-primary self-start lg:self-auto">Akses Guru Sekolah</button>
                 </div>
                 <section class="ci-surface p-5"><div class="flex items-center justify-between gap-4 mb-4"><div><p class="text-xs uppercase tracking-[.14em] font-bold text-methodistBlue">Pengumuman</p><h3 class="font-bold mt-1">Aliran tarikh penting PBD</h3></div></div><div id="takwimList" class="ci-timeline"></div></section>
-                <div id="publicKpis" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
+                <div id="publicKpis" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5"></div>
+                <div id="publicCompletionSummary" class="hidden"></div>
                 <div class="ci-surface p-5"><div class="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-4"><div><h3 class="font-bold">Analisis PBD keseluruhan</h3><p class="text-xs text-slate-500">Pilih sesi, mata pelajaran dan aras analisis.</p></div><div class="flex flex-wrap items-end gap-3"><div><p class="text-[10px] uppercase font-bold text-slate-500 mb-1">Sesi PBD</p><div class="flex rounded-lg border p-1 bg-slate-100"><button id="publicMidPeriod" onclick="setAnalysisPeriod('PERTENGAHAN')" class="px-3 py-2 rounded-md text-xs font-bold bg-methodistBlue text-white">Pertengahan</button><button id="publicFinalPeriod" onclick="setAnalysisPeriod('AKHIR')" class="px-3 py-2 rounded-md text-xs font-bold">Akhir</button></div></div><label class="text-[10px] uppercase font-bold text-slate-500">Subjek<select id="publicSubjectSelect" onchange="renderPublicSubjectDetail()" class="mt-1 block border rounded-lg px-3 py-2 text-sm bg-white text-slate-800"><option value="">Semua mata pelajaran</option></select></label><div><p class="text-[10px] uppercase font-bold text-slate-500 mb-1">Analisis</p><div class="flex rounded-lg border p-1 bg-slate-100"><button id="publicClassButton" onclick="setPublicLevel('classes')" class="px-4 py-2 rounded-md text-xs font-bold bg-methodistBlue text-white">Kelas</button><button id="publicYearButton" onclick="setPublicLevel('years')" class="px-4 py-2 rounded-md text-xs font-bold">Tahun</button></div></div></div></div><div class="h-72"><canvas id="publicOverviewChart"></canvas></div><div id="publicSubjectDetail" class="mt-5"></div></div>
             </div>
 
@@ -276,7 +284,7 @@
         <section id="contentPage" class="hidden">
             <div class="flex justify-between items-center mb-6 no-print">
                 <div id="sectionActions"></div>
-                <div class="flex flex-wrap items-center gap-2"><button id="btnArchivePdf" onclick="arkibPaparanSemasa()" class="hidden bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2 rounded-xl font-bold text-xs shadow-lg transition items-center gap-2">🗂️ <span id="btnArchivePdfLabel">Arkib Laporan</span></button><button id="btnPrint" onclick="window.print()" class="hidden bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-5 py-2 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2">🖨️ Cetak / Simpan PDF</button></div>
+                <div class="flex flex-wrap items-center gap-2"><button id="btnArchivePdf" onclick="arkibPaparanSemasa()" class="hidden bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2 rounded-xl font-bold text-xs shadow-lg transition items-center gap-2">🗂️ <span id="btnArchivePdfLabel">Arkib Laporan</span></button></div>
             </div>
             
             <div id="dynamicContent" class="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-800"></div>
@@ -406,7 +414,7 @@
 
     <!-- FOOTER -->
     <footer class="bg-slate-200 dark:bg-slate-900 text-center py-4 text-xs text-slate-500 dark:text-slate-400 mt-12 border-t dark:border-slate-800 no-print">
-        &copy; 2026 SK Methodist (M) PJ | Sistem Dashboard Dialog Prestasi
+        &copy; 2026 SK Methodist PJ | DASHBOARD PBD
     </footer>
 
     <!-- JAVASCRIPT LOGIC -->
@@ -576,7 +584,7 @@
                 "Menyusun analisis Tahap Penguasaan mengikut subjek...",
                 "Menyiapkan rekod intervensi murid...",
                 "Menjana statistik perbandingan kelas dan tahun...",
-                "Menyediakan Dashboard Dialog Prestasi SK Methodist (M) PJ..."
+                "Menyediakan DASHBOARD PBD SK Methodist PJ..."
             ];
             
             let qIdx = 0;
@@ -635,25 +643,25 @@
             const subjects = publicData?.subjects || Object.keys(analysis);
             const tpKeys = ['TP1','TP2','TP3','TP4','TP5','TP6','TD'];
             const totals = Object.fromEntries(tpKeys.map(k => [k, 0]));
-            let records = 0, longgokan = 0;
+            let longgokan = 0;
             const classes = new Set();
             subjects.forEach(subject => {
                 const item = analysis[subject] || {};
                 const overall = item.overall || {};
-                records += Number(overall.total || 0);
                 tpKeys.forEach(tp => totals[tp] += Number(overall.counts?.[tp] || 0));
                 (item.classes || []).forEach(row => {
                     classes.add(String(row.label || row.kelas || ''));
                     longgokan += (row.longgokan || []).length;
                 });
             });
+            const analyzedPupils = analysisPeriod === 'AKHIR' ? Number(publicData?.analyzedPupilsFinal || 0) : Number(publicData?.analyzedPupilsMid || 0);
             const kpis = [
-                [subjects.length, 'Mata pelajaran'],
-                [records.toLocaleString('ms-MY'), 'Rekod pentaksiran'],
-                [classes.size, 'Kelas dianalisis'],
-                [longgokan, 'Isyarat TP longgokan']
+                {value:subjects.length, label:'Mata Pelajaran'},
+                {value:analyzedPupils.toLocaleString('ms-MY'), label:'Murid Dianalisis'},
+                {value:classes.size, label:'Kelas Dianalisis'},
+                {value:longgokan, label:'Isyarat TP Longgokan', attention:longgokan > 0}
             ];
-            document.getElementById('publicKpis').innerHTML = kpis.map(([value,label]) => `<div class="ci-kpi"><div class="value">${escapeHtml(value)}</div><div class="label">${escapeHtml(label)}</div></div>`).join('');
+            document.getElementById('publicKpis').innerHTML = kpis.map(item => `<div class="ci-kpi ci-public-kpi"><div class="value">${escapeHtml(item.value)}</div><div class="label">${escapeHtml(item.label)}${item.attention?'<span class="ci-kpi-attention">Perlu perhatian</span>':''}</div></div>`).join('');
             renderTakwim();
             const subjectSelect=document.getElementById('publicSubjectSelect'),previousSubject=subjectSelect.value;
             subjectSelect.innerHTML = '<option value="">Semua mata pelajaran</option>' + subjects.map(s=>`<option value="${s}">${s}</option>`).join('');
@@ -751,6 +759,8 @@
             const active = Boolean(schoolData);
             document.getElementById('teacherWorkspace').classList.toggle('hidden', !active);
             document.getElementById('teacherNav').classList.toggle('hidden', !active);
+            const completionArea=document.getElementById('publicCompletionSummary');
+            if(!active&&completionArea){completionArea.replaceChildren();completionArea.classList.add('hidden');}
             document.getElementById('accessState').textContent = active ? 'Akses guru aktif' : 'Paparan awam';
             document.getElementById('logoutButton').classList.toggle('hidden',!active);
             if (active) { renderAttentionDashboard(); setActiveNav('home'); }
@@ -836,6 +846,8 @@
             const qualityRanking=['A','B','C'].flatMap(letter=>statistikLampiran(letter).ranking.map(item=>({...item,letter}))).sort((a,b)=>a.percent-b.percent||a.name.localeCompare(b.name,'ms')).slice(0,5);if(actionArea)actionArea.insertAdjacentHTML('beforeend',`<section class="rounded-xl border bg-white p-4 mb-5"><h3 class="text-sm font-black">Lima guru/bahagian Penjaminan 4P yang perlu perhatian</h3><div class="flex flex-wrap gap-2 mt-3">${qualityRanking.map(item=>`<button onclick="bukaModul('lampiran')" class="rounded-full border bg-amber-50 border-amber-200 px-3 py-1.5 text-xs font-bold text-amber-900">${escapeHtml(item.name)} · Lampiran ${item.letter} · ${item.percent}%</button>`).join('')||'<span class="text-xs text-slate-500">Tiada penetapan Lampiran direkodkan.</span>'}</div></section>`);
             const progress=(rows,type)=>`<div class="flex flex-wrap gap-2">${rows.map(r=>`<button onclick="${type==='dialog'?`bukaDialogSubjek('${r.label}')`:`bukaPbdKelas('${r.label}')`}" class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold transition hover:-translate-y-0.5 hover:shadow ${r.pct===100?'bg-emerald-50 border-emerald-200 text-emerald-800':'bg-slate-50 border-slate-200 text-slate-700'}"><span>${escapeHtml(r.label)}</span><strong>${r.pct}%</strong></button>`).join('')}</div>`;
             area.innerHTML=`<div class="mb-3 text-xs font-bold text-slate-500">Sumber analisis: <span class="text-methodistBlue">PBD ${analysisPeriod==='AKHIR'?'Akhir — PENGISIAN PBD (telah disubmit)':'Pertengahan — TAHAP1 / TAHAP2'}</span></div><div class="grid grid-cols-3 gap-3 mb-4"><div class="ci-kpi"><div class="value">${records.length}</div><div class="label">Murid perhatian</div></div><div class="ci-kpi"><div class="value text-red-700">${more}</div><div class="label">More Attention ≥3 subjek</div></div><div class="ci-kpi"><div class="value">${records.length-more}</div><div class="label">Moderate ≤2 subjek</div></div></div><div class="overflow-auto max-h-[34rem] border rounded-xl"><table class="ci-attention-table w-full text-xs"><thead class="sticky top-0 z-40 bg-slate-800 text-white"><tr><th class="p-3 text-left">Murid</th><th class="p-3">Kelas</th><th class="p-3">Bilangan</th><th class="p-3">Keutamaan</th><th class="p-3">Label</th></tr></thead><tbody>${records.map(r=>`<tr class="ci-attention-row border-b relative"><td class="p-3 font-bold"><span class="ci-tooltip">${escapeHtml(r.NAMA)}<span class="ci-tooltip-box"><strong>Subjek kritikal</strong><br>${r.critical.map(x=>`${x.subject}: ${x.level}`).join('<br>')}</span></span></td><td class="p-3 text-center">${escapeHtml(r.KELAS)}</td><td class="p-3 text-center font-black">${r.critical.length}</td><td class="p-3 text-center"><span class="px-2 py-1 rounded-full ${r.priority==='More Attention'?'bg-red-100 text-red-800':'bg-amber-100 text-amber-800'}">${r.priority}</span></td><td class="p-3 text-center">${r.labels.map(x=>`<span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-1">${x}</span>`).join('')||'—'}</td></tr>`).join('')}</tbody></table></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-4"><section class="rounded-xl border bg-white p-4"><h3 class="text-sm font-black mb-3">Dialog Prestasi lengkap mengikut subjek</h3>${progress(dialogProgress,'dialog')}</section><section class="rounded-xl border bg-white p-4"><h3 class="text-sm font-black mb-3">Pengisian PBD lengkap mengikut kelas</h3>${progress(pbdProgress,'pbd')}</section></div>`;
+            const completionArea=document.getElementById('publicCompletionSummary'),completionCards=area.lastElementChild;
+            if(completionArea&&completionCards?.classList.contains('grid')){completionArea.replaceChildren(completionCards);completionArea.classList.remove('hidden');}
         }
 
         async function bukaDialogSubjek(subject){await bukaModul('pengisian');pilihSubjek(subject);}
@@ -877,7 +889,6 @@
                 if (['pemulihan','psikometrik','lampiran','pbd','arkib'].includes(modul)) {
                     document.getElementById('subjectPage').classList.add('hidden');
                     document.getElementById('contentPage').classList.remove('hidden');
-                    document.getElementById('btnPrint').classList.toggle('hidden', modul === 'lampiran' || modul === 'arkib');
                     tetapkanButangArkib(modul);
                     if (modul === 'pemulihan') paparPemulihan();
                     if (modul === 'psikometrik') paparPsikometrik();
@@ -949,15 +960,12 @@
             }
 
             if (currentMode === 'analisis') {
-                document.getElementById('btnPrint').classList.remove('hidden');
                 tetapkanButangArkib('');
                 paparAnalisisData(subjek);
             } else if (currentMode === 'pengisian') {
-                document.getElementById('btnPrint').classList.add('hidden');
                 tetapkanButangArkib('');
                 paparKumpulanDialog(subjek);
             } else if (currentMode === 'overview') {
-                document.getElementById('btnPrint').classList.remove('hidden');
                 tetapkanButangArkib('overview');
                 paparLaporanBersepadu(subjek);
             }
@@ -1682,7 +1690,7 @@
             const batches=pupils.length?Array.from({length:Math.ceil(pupils.length/pageSize)},(_,index)=>pupils.slice(index*pageSize,index*pageSize+pageSize)):[[]];
             batches.forEach((batch,pageIndex)=>{
                 const start=pageIndex*pageSize,section=document.createElement('section');section.className='ci-recording-pdf';section.setAttribute('data-pdf-section','');
-                section.innerHTML=`<header class="mb-5 border-b-2 border-slate-800 pb-3"><div class="flex items-start justify-between gap-4"><div><p class="text-xs font-black uppercase tracking-widest text-methodistBlue">Rekod Rasmi PBD Akademik</p><h1 class="mt-1 text-2xl font-black">Kelas ${escapeHtml(meta.kelas||'')} · PBD ${meta.period==='AKHIR'?'Akhir':'Pertengahan'}</h1><p class="mt-1 text-sm font-bold text-slate-700">Senarai Tahap Penguasaan Semua Subjek</p></div><p class="text-xs font-bold text-slate-500">Muka ${pageIndex+1}/${batches.length}</p></div><p class="mt-1 text-xs text-slate-500">SK Methodist (M) PJ · Tahun akademik ${escapeHtml(meta.year||'')} · Dijana ${escapeHtml(new Date().toLocaleString('ms-MY'))}</p></header><table><thead><tr><th class="ci-record-number">Bil</th><th class="ci-record-name">Nama</th><th class="ci-record-class">Kelas</th><th class="ci-record-support">Sokongan</th>${subjects.map(subject=>`<th>${escapeHtml(subject)}</th>`).join('')}</tr></thead><tbody>${batch.map((pupil,index)=>`<tr><td class="ci-record-number">${start+index+1}</td><td class="ci-record-name">${escapeHtml(pupil.NAMA)}</td><td class="ci-record-class">${escapeHtml(pupil.KELAS)}</td><td class="ci-record-support">${pbdSupportBadges(pupil,'ALL')}</td>${subjects.map(subject=>{if(!takesSubject(pupil,subject))return '<td class="text-center">—</td>';const entry=entries.find(row=>String(row.REKOD_ID)===`${pupil.ID_MURID}_${subject}`)||{},value=meta.period==='PERTENGAHAN'?String(pupil[subject]||'').replace(/^TP/,''):String(entry.PBD_AKHIR||'').replace(/^TP/,'');return `<td class="text-center font-bold">${escapeHtml(value||'—')}</td>`;}).join('')}</tr>`).join('')||`<tr><td colspan="${subjects.length+4}" class="text-center">Tiada murid bagi kelas ini.</td></tr>`}</tbody></table>`;
+                section.innerHTML=`<header class="mb-5 border-b-2 border-slate-800 pb-3"><div class="flex items-start justify-between gap-4"><div><p class="text-xs font-black uppercase tracking-widest text-methodistBlue">Rekod Rasmi PBD Akademik</p><h1 class="mt-1 text-2xl font-black">Kelas ${escapeHtml(meta.kelas||'')} · PBD ${meta.period==='AKHIR'?'Akhir':'Pertengahan'}</h1><p class="mt-1 text-sm font-bold text-slate-700">Senarai Tahap Penguasaan Semua Subjek</p></div><p class="text-xs font-bold text-slate-500">Muka ${pageIndex+1}/${batches.length}</p></div><p class="mt-1 text-xs text-slate-500">SK Methodist PJ · Tahun akademik ${escapeHtml(meta.year||'')} · Dijana ${escapeHtml(new Date().toLocaleString('ms-MY'))}</p></header><table><thead><tr><th class="ci-record-number">Bil</th><th class="ci-record-name">Nama</th><th class="ci-record-class">Kelas</th><th class="ci-record-support">Sokongan</th>${subjects.map(subject=>`<th>${escapeHtml(subject)}</th>`).join('')}</tr></thead><tbody>${batch.map((pupil,index)=>`<tr><td class="ci-record-number">${start+index+1}</td><td class="ci-record-name">${escapeHtml(pupil.NAMA)}</td><td class="ci-record-class">${escapeHtml(pupil.KELAS)}</td><td class="ci-record-support">${pbdSupportBadges(pupil,'ALL')}</td>${subjects.map(subject=>{if(!takesSubject(pupil,subject))return '<td class="text-center">—</td>';const entry=entries.find(row=>String(row.REKOD_ID)===`${pupil.ID_MURID}_${subject}`)||{},value=meta.period==='PERTENGAHAN'?String(pupil[subject]||'').replace(/^TP/,''):String(entry.PBD_AKHIR||'').replace(/^TP/,'');return `<td class="text-center font-bold">${escapeHtml(value||'—')}</td>`;}).join('')}</tr>`).join('')||`<tr><td colspan="${subjects.length+4}" class="text-center">Tiada murid bagi kelas ini.</td></tr>`}</tbody></table>`;
                 stage.appendChild(section);
             });
             document.body.appendChild(stage);return{root:stage,cleanup:()=>stage.remove()};
@@ -1700,7 +1708,7 @@
             pdf.autoTable({
                 head:[['Bil','Nama','Kelas','Sokongan',...subjects]],body:rows.length?rows:[[1,'Tiada murid bagi kelas ini.','','',...subjects.map(()=>'-')]],startY:32,margin:{left:8,right:8,top:32,bottom:13},theme:'grid',showHead:'everyPage',rowPageBreak:'avoid',
                 styles:{font:'helvetica',fontSize:5.8,cellPadding:2.05,valign:'middle',lineColor:[203,213,225],lineWidth:.25,textColor:ink,overflow:'linebreak'},headStyles:{fillColor:ink,textColor:[255,255,255],fontStyle:'bold',halign:'center',minCellHeight:8},alternateRowStyles:{fillColor:[248,250,252]},columnStyles:widths,
-                willDrawPage:()=>{pdf.setFillColor(255,255,255);pdf.rect(0,0,W,H,'F');pdf.setTextColor(...blue);pdf.setFont('helvetica','bold');pdf.setFontSize(6.5);pdf.text('REKOD RASMI PBD AKADEMIK',8,9);pdf.setTextColor(...ink);pdf.setFontSize(15);pdf.text(`Kelas ${meta.kelas} · PBD ${meta.period==='AKHIR'?'Akhir':'Pertengahan'}`,8,17);pdf.setFontSize(7);pdf.text('Senarai Tahap Penguasaan Semua Subjek',8,22);pdf.setFont('helvetica','normal');pdf.setTextColor(100,116,139);pdf.text(`SK Methodist (M) PJ · Tahun akademik ${meta.year} · Dijana ${generated}`,8,27);pdf.setDrawColor(...ink);pdf.setLineWidth(.5);pdf.line(8,29,W-8,29);},
+                willDrawPage:()=>{pdf.setFillColor(255,255,255);pdf.rect(0,0,W,H,'F');pdf.setTextColor(...blue);pdf.setFont('helvetica','bold');pdf.setFontSize(6.5);pdf.text('REKOD RASMI PBD AKADEMIK',8,9);pdf.setTextColor(...ink);pdf.setFontSize(15);pdf.text(`Kelas ${meta.kelas} · PBD ${meta.period==='AKHIR'?'Akhir':'Pertengahan'}`,8,17);pdf.setFontSize(7);pdf.text('Senarai Tahap Penguasaan Semua Subjek',8,22);pdf.setFont('helvetica','normal');pdf.setTextColor(100,116,139);pdf.text(`SK Methodist PJ · Tahun akademik ${meta.year} · Dijana ${generated}`,8,27);pdf.setDrawColor(...ink);pdf.setLineWidth(.5);pdf.line(8,29,W-8,29);},
                 didDrawPage:data=>{pdf.setDrawColor(226,232,240);pdf.line(8,H-9,W-8,H-9);pdf.setTextColor(100,116,139);pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);pdf.text(`Kelas ${meta.kelas} · ${subjects.length} mata pelajaran`,8,H-5);pdf.text(`Muka ${data.pageNumber}`,W-8,H-5,{align:'right'});}
             });
             const total=pdf.getNumberOfPages();for(let page=1;page<=total;page++){pdf.setPage(page);pdf.setTextColor(100,116,139);pdf.setFontSize(6.5);pdf.text(`Muka ${page}/${total}`,W-8,H-5,{align:'right'});}return pdf.output('blob');
@@ -2029,7 +2037,6 @@
             const items=schoolData?.templates?.[`LAMPIRAN ${type}`]||[],responses=schoolData?.lampiranResponses||[],sections=[...new Set(items.map(item=>String(item.BAHAGIAN||'Bahagian lain')))];
             const rows=sections.map(section=>`<tr class="ci-format-section"><td colspan="4">${escapeHtml(section)}</td></tr>`+items.filter(item=>String(item.BAHAGIAN||'Bahagian lain')===section).map(item=>{const saved=responses.find(r=>String(r.LAMPIRAN||'').replace(/^LAMPIRAN\s*/i,'')===type&&r.NAMA_GURU===teacher&&String(r.ITEM_ID)===String(item.ITEM_ID))||{},events=String(saved.CATATAN||'').split(/\r?\n/).map(v=>v.replace(/^\s*[-•]\s*/,'').trim()).filter(Boolean),frequency=[1,2,3,4,5].filter((n,index)=>tarikhInput(saved[`KEKERAPAN_${n}`])&&events[index]).length,usesFrequency=item.CONTROL==='KEKERAPAN'||item.CONTROL==='KEDUA_DUA',usesYesNo=item.CONTROL==='YA_TIDAK'||item.CONTROL==='KEDUA_DUA',scale=`${usesFrequency?`<div class="ci-scale-pills" aria-label="Skala kekerapan ${frequency||'belum diisi'}">${[1,2,3,4,5].map(n=>`<span class="ci-scale-pill ${frequency===n?'active':''}">${n}</span>`).join('')}</div>`:''}${usesYesNo?`<div class="${usesFrequency?'mt-2':''} text-center font-black"><span class="${saved.YA?'text-emerald-700':''}">YA${saved.YA?' ✓':''}</span> / <span class="${saved.TIDAK?'text-rose-700':''}">TIDAK${saved.TIDAK?' ✓':''}</span></div>`:''}`,notes=events.length?`<ul class="list-disc pl-5 space-y-1">${events.map(note=>`<li>${escapeHtml(note)}</li>`).join('')}</ul>`:'—';return `<tr><td class="text-center font-bold">${escapeHtml(item.BILANGAN||item.ITEM_ID)}</td><td class="text-left">${escapeHtml(item.ITEM)}</td><td>${scale||'—'}</td><td class="text-left">${notes}</td></tr>`;}).join('')).join('');
             Swal.fire({width:1180,title:`Paparan Format Lampiran ${escapeHtml(type)}`,html:`<div class="text-left max-h-[72vh] overflow-auto pr-1"><article class="ci-format-paper"><div class="ci-format-dochead"><span></span><div class="code">${escapeHtml(formatInfo.code)}<br><b>LAMPIRAN ${escapeHtml(type)}</b></div></div><div class="ci-format-title">INSTRUMEN PENJAMINAN MUTU PENTAKSIRAN BILIK DARJAH<br>BAGI ${escapeHtml(formatInfo.role)}<br><span class="font-normal">(Alat yang digunakan untuk mengawal mutu pentaksiran)</span></div><h4 class="font-black mb-2">BAHAGIAN A: ${escapeHtml(formatInfo.section)}</h4><div class="ci-format-meta"><b>Nama:</b><span>${escapeHtml(teacher)}</span><b>Jawatan:</b><span>${escapeHtml(formatInfo.role)}</span><b>Mata Pelajaran Diajar:</b><span>—</span><b>Tahun/Tingkatan:</b><span>—</span></div><div class="ci-format-guide"><b>ARAHAN:</b><br>i. Tanda (✓) dipaparkan pada pilihan Ya atau Tidak.<br>ii. Skala penilaian: <b>1 – Tidak pernah, 2 – Jarang-jarang, 3 – Kadang-kadang, 4 – Kerap, 5 – Sangat kerap.</b><br><span class="text-slate-500">Bagi bahagian penguasaan: 1 – Sangat Tidak Menguasai/Memahami hingga 5 – Sangat Menguasai/Memahami.</span></div><table class="ci-format-table"><thead><tr><th style="width:10%">BIL.</th><th>PERKARA</th><th style="width:24%">SKALA</th><th style="width:28%">CATATAN</th></tr></thead><tbody>${rows}</tbody></table><div class="mt-6 grid grid-cols-[7rem_1fr] gap-y-2 text-xs"><b>Tandatangan:</b><span class="border-b border-slate-500"></span><b>Nama:</b><span>${escapeHtml(teacher)}</span><b>Tarikh:</b><span class="border-b border-slate-500"></span></div><p class="mt-5 text-center text-xs font-black">— TAMAT —</p></article><p class="mt-3 text-xs text-slate-500">Paparan ini dijana daripada pengisian semasa dan tidak disimpan sebagai rekod baharu.</p></div>`,confirmButtonText:'Tutup'});
-            setTimeout(()=>{const actions=document.querySelector('.swal2-actions');if(!actions||document.getElementById('lampiranPdfButton'))return;const button=document.createElement('button');button.id='lampiranPdfButton';button.type='button';button.className='swal2-confirm swal2-styled';button.style.background='#059669';button.textContent='⬇ Simpan PDF';button.onclick=simpanPdfLampiran;actions.prepend(button);},0);
         }
 
         function dataLampiranSemasa(){const teacher=document.getElementById('lampTeacher')?.value,type=document.getElementById('lampType')?.value,items=schoolData?.templates?.[`LAMPIRAN ${type}`]||[],responses=schoolData?.lampiranResponses||[];return{teacher,type,items,rows:items.map(item=>{const saved=responses.find(r=>String(r.LAMPIRAN||'').replace(/^LAMPIRAN\s*/i,'')===type&&r.NAMA_GURU===teacher&&String(r.ITEM_ID)===String(item.ITEM_ID))||{},events=String(saved.CATATAN||'').split(/\r?\n/).map(v=>v.replace(/^\s*[-•]\s*/,'').trim()).filter(Boolean),frequency=[1,2,3,4,5].filter((n,index)=>tarikhInput(saved[`KEKERAPAN_${n}`])&&events[index]).length,yesNo=saved.YA?'YA':saved.TIDAK?'TIDAK':'';return{...item,events,frequency,yesNo};})};}
