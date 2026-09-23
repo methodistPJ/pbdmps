@@ -429,7 +429,8 @@
         let schoolToken = sessionStorage.getItem('pbdSchoolToken') || '';
         let publicChart = null;
         let publicAnalysisLevel = 'classes';
-        let analysisPeriod = 'PERTENGAHAN';
+        let analysisPeriod = ['PERTENGAHAN','AKHIR'].includes(sessionStorage.getItem('pbdAnalysisPeriod')) ? sessionStorage.getItem('pbdAnalysisPeriod') : 'PERTENGAHAN';
+        let analysisPeriodManuallySelected = sessionStorage.getItem('pbdAnalysisPeriodManual') === '1';
         let psychometricYearChart = null;
         let psychometricClassCharts = [];
         let psychometricSelectedYear = '';
@@ -605,6 +606,7 @@
                 let res = await requestApi(WEB_APP_URL + "?action=getPublicData&t=" + Date.now());
                 setProgress(75);
                 publicData = res;
+                tetapkanSesiPbdAutomatik();
                 renderPublicSummary();
                 if (schoolToken) {
                     try { await loadSchoolData(); }
@@ -664,15 +666,25 @@
 
         function selectedPublicAnalysis(){return analysisPeriod==='AKHIR'?(publicData?.analysisFinal||{}):(publicData?.analysisMid||publicData?.analysis||{});}
 
-        function setAnalysisPeriod(period){analysisPeriod=period==='AKHIR'?'AKHIR':'PERTENGAHAN';[['publicMidPeriod','PERTENGAHAN'],['publicFinalPeriod','AKHIR'],['teacherMidPeriod','PERTENGAHAN'],['teacherFinalPeriod','AKHIR']].forEach(([id,value])=>{const button=document.getElementById(id);if(!button)return;button.classList.toggle('bg-methodistBlue',analysisPeriod===value);button.classList.toggle('text-white',analysisPeriod===value);});renderPublicSummary();renderPublicSubjectDetail();if(schoolData)renderAttentionDashboard();}
+        function kemasKiniButangSesiPbd(){[['publicMidPeriod','PERTENGAHAN'],['publicFinalPeriod','AKHIR'],['teacherMidPeriod','PERTENGAHAN'],['teacherFinalPeriod','AKHIR']].forEach(([id,value])=>{const button=document.getElementById(id);if(!button)return;button.classList.toggle('bg-methodistBlue',analysisPeriod===value);button.classList.toggle('text-white',analysisPeriod===value);});}
+        function setAnalysisPeriod(period){analysisPeriod=period==='AKHIR'?'AKHIR':'PERTENGAHAN';analysisPeriodManuallySelected=true;sessionStorage.setItem('pbdAnalysisPeriod',analysisPeriod);sessionStorage.setItem('pbdAnalysisPeriodManual','1');kemasKiniButangSesiPbd();renderPublicSummary();renderPublicSubjectDetail();if(schoolData)renderAttentionDashboard();}
 
         const BULAN_MS={JANUARI:0,FEBRUARI:1,MAC:2,APRIL:3,MEI:4,JUN:5,JULAI:6,OGOS:7,SEPTEMBER:8,OKTOBER:9,NOVEMBER:10,DISEMBER:11};
         function parseTarikhTakwim(value){const text=String(value||'').trim().toUpperCase();const named=text.match(/(\d{1,2})\s+([A-Z]+)\s+(\d{4})/);if(named&&BULAN_MS[named[2]]!==undefined)return new Date(+named[3],BULAN_MS[named[2]],+named[1]);const numeric=text.match(/(\d{1,2})\D+(\d{1,2})\D+(\d{4})/);return numeric?new Date(+numeric[3],+numeric[2]-1,+numeric[1]):null;}
         function julatTakwim(value){const parts=String(value||'').split(/\s+-\s+/);const start=parseTarikhTakwim(parts[0]);const end=parseTarikhTakwim(parts[1]||parts[0]);if(end)end.setHours(23,59,59,999);return {start,end};}
         function tarikhTakwim(value){return julatTakwim(value).start?.getTime()??Number.MAX_SAFE_INTEGER;}
         function statusTakwim(value){const {start,end}=julatTakwim(value),now=new Date();if(start&&end&&now>=start&&now<=end)return {key:'in-progress',label:'Sedang berjalan'};if(end&&now>end)return {key:'completed',label:'Selesai'};return {key:'upcoming',label:'Akan datang'};}
+        function sesiDaripadaPerkaraTakwim(value){const text=String(value||'').trim().toUpperCase();if(/\bAKHIR\b|IDME/.test(text))return 'AKHIR';if(/PERTENGAHAN|INTELLIGENCE/.test(text))return 'PERTENGAHAN';return '';}
+        function tentukanSesiPbdDaripadaTakwim(rows,now=new Date()){
+            const sessions=(rows||[]).map(row=>{const period=sesiDaripadaPerkaraTakwim(row.PERKARA),range=julatTakwim(row.TARIKH_PELAKSANAAN);return {period,...range};}).filter(row=>row.period&&row.start);
+            if(!sessions.length)return 'PERTENGAHAN';
+            const active=sessions.find(row=>now>=row.start&&(!row.end||now<=row.end));if(active)return active.period;
+            const started=sessions.filter(row=>row.start<=now).sort((a,b)=>b.start-a.start)[0];if(started)return started.period;
+            return sessions.sort((a,b)=>a.start-b.start)[0].period;
+        }
+        function tetapkanSesiPbdAutomatik(){if(analysisPeriodManuallySelected)return;analysisPeriod=tentukanSesiPbdDaripadaTakwim(publicData?.takwim||[]);sessionStorage.setItem('pbdAnalysisPeriod',analysisPeriod);kemasKiniButangSesiPbd();}
         function renderTakwim(){const area=document.getElementById('takwimList');if(!area)return;const takwim=[...(publicData?.takwim||[])].sort((a,b)=>tarikhTakwim(a.TARIKH_PELAKSANAAN)-tarikhTakwim(b.TARIKH_PELAKSANAAN));area.innerHTML=takwim.map((item,i)=>{const status=statusTakwim(item.TARIKH_PELAKSANAAN);return `<button type="button" class="ci-timeline-item ${status.key} w-full text-left"><div class="flex justify-between items-start gap-3"><p class="text-[10px] uppercase tracking-wider font-bold text-methodistBlue">Fasa ${i+1}</p><span class="text-[10px] font-black rounded-full px-2 py-1 ${status.key==='in-progress'?'bg-amber-200 text-amber-900':status.key==='completed'?'bg-emerald-100 text-emerald-800':'bg-blue-100 text-blue-800'}">${status.label}</span></div><p class="text-sm font-black mt-3">${escapeHtml(item.PERKARA||'')}</p><p class="text-xs text-slate-500 mt-3">${escapeHtml(item.TARIKH_PELAKSANAAN||'')}</p></button>`}).join('')||'<p class="text-sm text-slate-500">Tiada takwim direkodkan.</p>';}
-        async function refreshTakwim(){try{const res=await requestApi(WEB_APP_URL+'?action=getTakwim&t='+Date.now(),{timeoutMs:15000,retries:1});if(publicData&&Array.isArray(res.takwim)){publicData.takwim=res.takwim;renderTakwim();if(schoolData)renderAttentionDashboard();}}catch(error){console.warn('TAKWIM belum dapat disegarkan:',error.message);}}
+        async function refreshTakwim(){try{const res=await requestApi(WEB_APP_URL+'?action=getTakwim&t='+Date.now(),{timeoutMs:15000,retries:1});if(publicData&&Array.isArray(res.takwim)){publicData.takwim=res.takwim;tetapkanSesiPbdAutomatik();renderTakwim();renderPublicSummary();renderPublicSubjectDetail();if(schoolData)renderAttentionDashboard();}}catch(error){console.warn('TAKWIM belum dapat disegarkan:',error.message);}}
         setInterval(()=>{if(!document.hidden)refreshTakwim();},60000);
         document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshTakwim();});
 
@@ -821,6 +833,7 @@
         function dialogRecord(key){return globalData.dialog.find(d=>d.SUBJEK===key&&normalizedRecordPeriod(d)===analysisPeriod);}
         function overviewRecord(subject){return globalData.overview.find(o=>o.SUBJEK===subject&&normalizedRecordPeriod(o)===analysisPeriod);}
         function longgokanRecord(subject,kelas,tp){return (schoolData?.longgokan||[]).find(r=>String(r.SUBJEK)===subject&&String(r.KELAS)===String(kelas)&&String(r.TP)===String(tp)&&normalizedRecordPeriod(r)===analysisPeriod);}
+        function peratusKumpulan(count,total){if(!count||!total)return '';const value=Math.round((Number(count)/Number(total))*1000)/10;return `${Number.isInteger(value)?value.toFixed(0):value.toFixed(1)}%`;}
         function modulePeriodButtons(prefix){return `<div class="flex rounded-lg border p-1 bg-slate-100"><button id="${prefix}MidPeriod" onclick="setModuleAnalysisPeriod('PERTENGAHAN')" class="px-3 py-2 rounded-md text-xs font-bold ${analysisPeriod==='PERTENGAHAN'?'bg-methodistBlue text-white':''}">PBD Pertengahan</button><button id="${prefix}FinalPeriod" onclick="setModuleAnalysisPeriod('AKHIR')" class="px-3 py-2 rounded-md text-xs font-bold ${analysisPeriod==='AKHIR'?'bg-methodistBlue text-white':''}">PBD Akhir</button></div>`;}
         function setModuleAnalysisPeriod(period){setAnalysisPeriod(period);if(!selectedSubjek)return;if(currentMode==='pengisian')paparKumpulanDialog(selectedSubjek);if(currentMode==='overview')paparLaporanBersepadu(selectedSubjek);}
         function renderAttentionDashboard(){
@@ -828,7 +841,7 @@
             const analysisPupils=pupilsForAnalysisPeriod();
             const records=analysisPupils.map(p=>{const critical=subjects.map(subject=>({subject,level:String(p[subject]||'').toUpperCase()})).filter(x=>['TP1','TP2','TD'].includes(x.level));const labels=[...new Set(subjects.flatMap(s=>getSupportLabels(p,s)))];return {...p,critical,labels,priority:critical.length>=3?'More Attention':'Moderate'};}).filter(p=>p.critical.length).sort((a,b)=>b.critical.length-a.critical.length||a.KELAS.localeCompare(b.KELAS)||a.NAMA.localeCompare(b.NAMA));
             const more=records.filter(r=>r.priority==='More Attention').length;
-            const dialogProgress=senaraiSubjek.map(subject=>{const recorded=analysisPupils.filter(p=>String(p[subject]||'').trim());if(analysisPeriod==='AKHIR'&&!recorded.length)return {label:subject,pct:null,missing:true};const target=recorded.filter(p=>['TP1','TP2','TD'].includes(String(p[subject]||'').toUpperCase()));const done=target.filter(p=>{const d=dialogRecord(`${p.NAMA}_${subject}`);return d&&d.ISU_PUNCA&&d.INTERVENSI_PENDEK&&d.INTERVENSI_PANJANG;}).length;return {label:subject,pct:target.length?Math.round(done*100/target.length):100};});
+            const dialogProgress=senaraiSubjek.map(subject=>{const recorded=analysisPupils.filter(p=>String(p[subject]||'').trim());if(analysisPeriod==='AKHIR'&&!recorded.length)return {label:subject,pct:0,missing:true};const target=recorded.filter(p=>['TP1','TP2','TD'].includes(String(p[subject]||'').toUpperCase()));const done=target.filter(p=>{const d=dialogRecord(`${p.NAMA}_${subject}`);return d&&d.ISU_PUNCA&&d.INTERVENSI_PENDEK&&d.INTERVENSI_PANJANG;}).length;return {label:subject,pct:target.length?Math.round(done*100/target.length):100};});
             const classes=[...new Set((schoolData?.pupils||[]).map(p=>p.KELAS))].sort();
             const transferred=new Set((schoolData?.pupilStatuses||[]).filter(r=>String(r.STATUS||'').toUpperCase()==='PINDAH').map(r=>String(r.ID_MURID)));
             const pbdProgress=classes.map(kelas=>{const pupils=(schoolData?.pupils||[]).filter(p=>p.KELAS===kelas&&!transferred.has(String(p.ID_MURID)));const expected=pupils.reduce((n,p)=>n+senaraiSubjek.filter(s=>takesSubject(p,s)).length,0);const done=(schoolData?.pbdEntries||[]).filter(e=>e.KELAS===kelas&&e.PBD_AKHIR&&String(e.STATUS||'').toUpperCase()==='DISUBMIT'&&!transferred.has(String(e.ID_MURID))).length;return {label:kelas,pct:expected?Math.min(100,Math.round(done*100/expected)):100};});
@@ -1212,7 +1225,7 @@
                                 <button type="button" onclick="clearText('ovPentadbirText')" class="absolute top-2 right-2 text-slate-400 hover:text-red-500 font-bold text-xs bg-slate-200 dark:bg-slate-700 rounded-full w-4 h-4 flex items-center justify-center">✕</button>
                             </div>
                         </div>
-                        <button id="btnOvPentadbir" onclick="simpanOverviewComment(event, '${sub}', 'ULASAN_PENTADBIR', 'ovPentadbirText')" class="mt-3 w-full ${overviewObj.ULASAN_PENTADBIR?'bg-emerald-700 hover:bg-emerald-800':'bg-amber-600 hover:bg-amber-700'} text-white font-bold py-1.5 rounded-xl text-xs shadow transition">${overviewObj.ULASAN_PENTADBIR ? '✏️ Kemaskini Ulasan' : '💾 Simpan Ulasan Pentadbir'}</button>
+                        <button id="btnOvPentadbir" onclick="simpanOverviewComment(event, '${sub}', 'ULASAN_PENTADBIR', 'ovPentadbirText')" class="mt-3 w-full ${overviewObj.ULASAN_PENTADBIR?'bg-emerald-700 hover:bg-emerald-800':'bg-amber-600 hover:bg-amber-700'} text-white font-bold py-1.5 rounded-xl text-xs shadow transition">${overviewObj.ULASAN_PENTADBIR ? '✓ Ulasan Pentadbir Telah Disimpan' : '💾 Simpan Ulasan Pentadbir'}</button>
                     </div>
 
                     <!-- Tindakan Kaunselor -->
@@ -1228,7 +1241,7 @@
                                 <button type="button" onclick="clearText('ovKaunselorText')" class="absolute top-2 right-2 text-slate-400 hover:text-red-500 font-bold text-xs bg-slate-200 dark:bg-slate-700 rounded-full w-4 h-4 flex items-center justify-center">✕</button>
                             </div>
                         </div>
-                        <button id="btnOvKaunselor" onclick="simpanOverviewComment(event, '${sub}', 'TINDAKAN_KAUNSELOR', 'ovKaunselorText')" class="mt-3 w-full ${overviewObj.TINDAKAN_KAUNSELOR?'bg-emerald-700 hover:bg-emerald-800':'bg-amber-600 hover:bg-amber-700'} text-white font-bold py-1.5 rounded-xl text-xs shadow transition">${overviewObj.TINDAKAN_KAUNSELOR ? '✏️ Kemaskini Ulasan' : '💾 Simpan Tindakan UBK'}</button>
+                        <button id="btnOvKaunselor" onclick="simpanOverviewComment(event, '${sub}', 'TINDAKAN_KAUNSELOR', 'ovKaunselorText')" class="mt-3 w-full ${overviewObj.TINDAKAN_KAUNSELOR?'bg-emerald-700 hover:bg-emerald-800':'bg-amber-600 hover:bg-amber-700'} text-white font-bold py-1.5 rounded-xl text-xs shadow transition">${overviewObj.TINDAKAN_KAUNSELOR ? '✓ Tindakan UBK Telah Disimpan' : '💾 Simpan Tindakan UBK'}</button>
                     </div>
 
                     <!-- Tindakan Ketua Panitia -->
@@ -1244,7 +1257,7 @@
                                 <button type="button" onclick="clearText('ovKPText')" class="absolute top-2 right-2 text-slate-400 hover:text-red-500 font-bold text-xs bg-slate-200 dark:bg-slate-700 rounded-full w-4 h-4 flex items-center justify-center">✕</button>
                             </div>
                         </div>
-                        <button id="btnOvKP" onclick="simpanOverviewComment(event, '${sub}', 'TINDAKAN_KETUA_PANITIA', 'ovKPText')" class="mt-3 w-full ${overviewObj.TINDAKAN_KETUA_PANITIA?'bg-emerald-700 hover:bg-emerald-800':'bg-amber-600 hover:bg-amber-700'} text-white font-bold py-1.5 rounded-xl text-xs shadow transition">${overviewObj.TINDAKAN_KETUA_PANITIA ? '✏️ Kemaskini Ulasan' : '💾 Simpan Tindakan Panitia'}</button>
+                        <button id="btnOvKP" onclick="simpanOverviewComment(event, '${sub}', 'TINDAKAN_KETUA_PANITIA', 'ovKPText')" class="mt-3 w-full ${overviewObj.TINDAKAN_KETUA_PANITIA?'bg-emerald-700 hover:bg-emerald-800':'bg-amber-600 hover:bg-amber-700'} text-white font-bold py-1.5 rounded-xl text-xs shadow transition">${overviewObj.TINDAKAN_KETUA_PANITIA ? '✓ Tindakan Panitia Telah Disimpan' : '💾 Simpan Tindakan Panitia'}</button>
                     </div>
                 </div>
             </div>`;
@@ -1259,6 +1272,7 @@
             let tpKeys = ['TP1', 'TP2', 'TD'];
             let html = '';
             const showPemulihan = ['BM','MM'].includes(sub);
+            const jumlahMuridSubjek = gabungData.filter(m => String(m[sub]||'').trim()).length;
 
             tpKeys.forEach(tpKey => {
                 let senaraiMurid = gabungData.filter(m => String(m[sub]||'').trim().toUpperCase() === tpKey);
@@ -1272,7 +1286,7 @@
                     <div class="flex flex-wrap items-center justify-between gap-3 mb-4 border-b dark:border-slate-800 pb-3">
                         <div class="flex items-center gap-2">
                             <span class="text-xs font-black px-3 py-1 rounded-full border ${badgeColor}">KUMPULAN ${tpKey}</span>
-                            <span class="text-xs font-bold text-slate-500 dark:text-slate-400">(${senaraiMurid.length} Orang Murid)</span>
+                            ${senaraiMurid.length?`<span class="text-xs font-bold text-slate-500 dark:text-slate-400">(${senaraiMurid.length} Orang / ${peratusKumpulan(senaraiMurid.length,jumlahMuridSubjek)})</span>`:''}
                         </div>
                         ${senaraiMurid.length?`<div class="no-print flex items-center gap-2"><span class="text-[10px] font-bold uppercase text-slate-500">Status tindakan:</span><button onclick="kemasKiniStatusKumpulan('${sub}','${tpKey}','Tindakan Selesai')" class="px-3 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-[10px] font-black hover:bg-emerald-100">✓ Pilih Semua</button><button onclick="kemasKiniStatusKumpulan('${sub}','${tpKey}','Belum Selesai')" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-[10px] font-black hover:bg-slate-100">↺ Nyahpilih</button></div>`:''}
                     </div>`;
@@ -1413,6 +1427,8 @@
             if (button) {button.textContent = '💾 Simpan perubahan';button.classList.remove('bg-emerald-700','hover:bg-emerald-800');button.classList.add('bg-amber-600','hover:bg-amber-700');}
         }
 
+        function labelOverviewDisimpan(field){return field==='ULASAN_PENTADBIR'?'✓ Ulasan Pentadbir Telah Disimpan':field==='TINDAKAN_KAUNSELOR'?'✓ Tindakan UBK Telah Disimpan':'✓ Tindakan Panitia Telah Disimpan';}
+
         async function kemasKiniStatusKumpulan(subjek,tpKey,newStatus){
             const keys=pupilsForAnalysisPeriod().filter(m=>String(m[subjek]||'').trim().toUpperCase()===tpKey).map(m=>`${m.NAMA}_${subjek}`);
             if(!keys.length)return;
@@ -1447,7 +1463,7 @@
                     text: 'Catatan / ulasan telah dikemaskini dalam tab Overview Google Sheet.',
                     confirmButtonColor: '#7c3aed'
                 });
-                if (event?.currentTarget) event.currentTarget.textContent = '✏️ Kemaskini Ulasan';
+                if (event?.currentTarget) event.currentTarget.textContent = labelOverviewDisimpan(field);
                 if (event?.currentTarget) { event.currentTarget.classList.remove('bg-amber-600','hover:bg-amber-700'); event.currentTarget.classList.add('bg-emerald-700','hover:bg-emerald-800'); }
 
             } catch (err) {
@@ -1638,7 +1654,7 @@
             let y;
 
             const groups=[['TP1',tp1],['TP2',tp2],['TD',td]];
-            groups.forEach(([level,rows])=>{y=addPage(`03 · Intervensi ${level}`,`Kumpulan Sasaran ${level}`,`${rows.length} orang murid · Kepala jadual diulang secara automatik pada setiap muka surat.`);const body=rows.map((pupil,index)=>{const dialog=dialogRecord(`${pupil.NAMA}_${subjek}`)||{},focus=ringkasanPsikometrikKelas(pupil.KELAS);return[index+1,`${pupil.NAMA}\n${pupil.KELAS}`,getSupportLabels(pupil,subjek).join(', ')||'—',focus?`Utama: ${focus.utama}\nSokong: ${focus.sokong}`:'—',dialog.ISU_PUNCA||'Belum diisi',dialog.INTERVENSI_PENDEK||'—',dialog.INTERVENSI_PANJANG||'—'];});if(body.length)table(['Bil','Nama Murid & Kelas','Sokongan','Fokus Strategik','Isu & Punca Utama','Intervensi Pendek','Intervensi Panjang'],body,y,{0:{cellWidth:10},1:{cellWidth:42},2:{cellWidth:25},3:{cellWidth:32},4:{cellWidth:50},5:{cellWidth:50},6:{cellWidth:50}},5.7);else{pdf.setFillColor(236,253,245);pdf.roundedRect(13,y,W-26,20,4,4,'F');pdf.setTextColor(4,120,87);pdf.setFontSize(10);pdf.text(`Tiada murid dalam kumpulan ${level} untuk subjek ini.`,20,y+12);}});
+            groups.forEach(([level,rows])=>{const groupSummary=rows.length?`${rows.length} orang murid (${peratusKumpulan(rows.length,pupils.length)}) · Kepala jadual diulang secara automatik pada setiap muka surat.`:'Kepala jadual diulang secara automatik pada setiap muka surat.';y=addPage(`03 · Intervensi ${level}`,`Kumpulan Sasaran ${level}`,groupSummary);const body=rows.map((pupil,index)=>{const dialog=dialogRecord(`${pupil.NAMA}_${subjek}`)||{},focus=ringkasanPsikometrikKelas(pupil.KELAS);return[index+1,`${pupil.NAMA}\n${pupil.KELAS}`,getSupportLabels(pupil,subjek).join(', ')||'—',focus?`Utama: ${focus.utama}\nSokong: ${focus.sokong}`:'—',dialog.ISU_PUNCA||'Belum diisi',dialog.INTERVENSI_PENDEK||'—',dialog.INTERVENSI_PANJANG||'—'];});if(body.length)table(['Bil','Nama Murid & Kelas','Sokongan','Fokus Strategik','Isu & Punca Utama','Intervensi Pendek','Intervensi Panjang'],body,y,{0:{cellWidth:10},1:{cellWidth:42},2:{cellWidth:25},3:{cellWidth:32},4:{cellWidth:50},5:{cellWidth:50},6:{cellWidth:50}},5.7);else{pdf.setFillColor(236,253,245);pdf.roundedRect(13,y,W-26,20,4,4,'F');pdf.setTextColor(4,120,87);pdf.setFontSize(10);pdf.text(`Tiada murid dalam kumpulan ${level} untuk subjek ini.`,20,y+12);}});
 
             const signals=(analysis.classes||[]).flatMap(row=>(row.longgokan||[]).map(signal=>({...signal,kelas:row.label,total:row.total})));y=addPage('04 · TP Longgokan','Intervensi TP Longgokan Mengikut Kelas','Setiap rekod dipaparkan sebagai baris lengkap dan tidak dipotong antara muka surat.');const longRows=signals.map((signal,index)=>{const saved=longgokanRecord(subjek,signal.kelas,signal.tp)||{};return[index+1,`${signal.kelas} · ${signal.tp}`,`${signal.count}/${signal.total} (${signal.percentage}%)`,saved.ISU_ASPEK_MURID||'Belum diisi',saved.ISU_ASPEK_GURU||'Belum diisi',saved.INTERVENSI_ASPEK_MURID||'—',saved.INTERVENSI_ASPEK_GURU||'—'];});if(longRows.length)table(['Bil','Kelas · TP','Bilangan','Isu Murid','Isu Guru','Intervensi Murid','Intervensi Guru'],longRows,y,{0:{cellWidth:10},1:{cellWidth:28},2:{cellWidth:27},3:{cellWidth:50},4:{cellWidth:50},5:{cellWidth:55},6:{cellWidth:55}},5.8);else{pdf.setFillColor(236,253,245);pdf.roundedRect(13,y,W-26,20,4,4,'F');pdf.setTextColor(4,120,87);pdf.text('Tiada TP Longgokan pada peringkat kelas.',20,y+12);}
 
@@ -2166,6 +2182,7 @@
                 'TP2': gabungData.filter(m => String(m[sub]||'').trim().toUpperCase() === 'TP2'),
                 'TD': gabungData.filter(m => String(m[sub]||'').trim().toUpperCase() === 'TD')
             };
+            const jumlahMuridSubjek = gabungData.filter(m => String(m[sub]||'').trim()).length;
 
             let html = `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">`;
             const config = [
@@ -2201,7 +2218,7 @@
                         <div class="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-4">
                             <div class="flex justify-between items-center">
                                 <h4 class="text-lg font-extrabold">${c.title}</h4>
-                                <span class="bg-white/20 px-3 py-0.5 rounded-full text-xs font-bold">${bil} Murid</span>
+                                <span class="bg-white/20 px-3 py-0.5 rounded-full text-xs font-bold">${bil} Murid · ${peratusKumpulan(bil,jumlahMuridSubjek)}</span>
                             </div>
                         </div>
                         <div class="p-5 text-center flex flex-col justify-center flex-grow">
@@ -2229,7 +2246,7 @@
                         <div class="bg-gradient-to-r ${c.color} text-white p-4">
                             <div class="flex justify-between items-center">
                                 <h4 class="text-lg font-extrabold">${c.title}</h4>
-                                <span class="bg-white/20 px-3 py-0.5 rounded-full text-xs font-bold">${bil} Murid</span>
+                                <span class="bg-white/20 px-3 py-0.5 rounded-full text-xs font-bold">${bil} Murid · ${peratusKumpulan(bil,jumlahMuridSubjek)}</span>
                             </div>
                         </div>
                         <div class="p-5 flex-grow">
@@ -2389,7 +2406,7 @@
 
         function clearText(elementId) {
             let el = document.getElementById(elementId);
-            if (el) el.value = '';
+            if (el) {el.value = '';el.dispatchEvent(new Event('input',{bubbles:true}));}
         }
 
         function tambahTeks(elementId, teks) {
@@ -2409,6 +2426,7 @@
             }
 
             el.value += (el.value.trim() !== "" ? " " : "") + teks;
+            el.dispatchEvent(new Event('input',{bubbles:true}));
         }
 
         async function simpanModalData(sub, tpKey) {
